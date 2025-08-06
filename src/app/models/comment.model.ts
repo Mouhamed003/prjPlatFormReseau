@@ -8,6 +8,7 @@ export interface Comment {
   updatedAt: string;
   likesCount: number;
   isLiked: boolean;
+  isLikedByCurrentUser: boolean;
   user: User;
   postContent?: string; // Pour les commentaires dans le profil utilisateur
 }

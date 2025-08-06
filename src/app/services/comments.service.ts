@@ -23,6 +23,11 @@ export class CommentsService {
     return this.http.get<CommentsResponse>(`${this.apiUrl}/post/${postId}?${params}`);
   }
 
+  // Alias pour getPostComments (pour compatibilité)
+  getCommentsByPost(postId: number, limit: number = 20, offset: number = 0): Observable<CommentsResponse> {
+    return this.getPostComments(postId, limit, offset);
+  }
+
   // Récupérer un commentaire spécifique
   getCommentById(commentId: number): Observable<{ comment: Comment }> {
     return this.http.get<{ comment: Comment }>(`${this.apiUrl}/${commentId}`);

@@ -7,9 +7,12 @@ class UsersController {
   // Inscription d'un nouvel utilisateur
   static async register(req, res) {
     try {
+      console.log('Début de l\'inscription, données reçues:', req.body);
+      
       // Vérification des erreurs de validation
       const errors = validationResult(req);
       if (!errors.isEmpty()) {
+        console.log('Erreurs de validation:', errors.array());
         return res.status(400).json({
           error: 'Données invalides',
           details: errors.array()
@@ -17,14 +20,18 @@ class UsersController {
       }
 
       const { username, email, password, firstName, lastName, bio } = req.body;
+      console.log('Variables extraites:', { username, email, firstName, lastName, bio });
 
       // Vérifier si l'utilisateur existe déjà
+      console.log('Vérification de l\'utilisateur existant...');
       const existingUser = await database.get(
         'SELECT id FROM users WHERE email = ? OR username = ?',
         [email, username]
       );
+      console.log('Utilisateur existant:', existingUser);
 
       if (existingUser) {
+        console.log('Utilisateur déjà existant, retour d\'erreur');
         return res.status(409).json({
           error: 'Utilisateur déjà existant',
           message: 'Un compte avec cet email ou nom d\'utilisateur existe déjà'
@@ -32,22 +39,30 @@ class UsersController {
       }
 
       // Hachage du mot de passe
+      console.log('Hachage du mot de passe...');
       const saltRounds = 12;
       const passwordHash = await bcrypt.hash(password, saltRounds);
+      console.log('Mot de passe haché avec succès');
 
       // Insertion du nouvel utilisateur
+      console.log('Insertion de l\'utilisateur dans la base...');
       const result = await database.run(
         `INSERT INTO users (username, email, password_hash, first_name, last_name, bio) 
          VALUES (?, ?, ?, ?, ?, ?)`,
         [username, email, passwordHash, firstName, lastName, bio || null]
       );
+      console.log('Résultat de l\'insertion:', result);
 
       // Génération du token JWT
+      console.log('Génération du token JWT...');
+      console.log('JWT_SECRET:', process.env.JWT_SECRET ? 'défini' : 'non défini');
+      console.log('JWT_EXPIRES_IN:', process.env.JWT_EXPIRES_IN);
       const token = jwt.sign(
         { userId: result.id, username, email },
         process.env.JWT_SECRET,
         { expiresIn: process.env.JWT_EXPIRES_IN }
       );
+      console.log('Token généré avec succès');
 
       res.status(201).json({
         message: 'Utilisateur créé avec succès',

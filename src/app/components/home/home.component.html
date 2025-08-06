@@ -1,1 +1,205 @@
-<p>home works!</p>
+<div class="home-container">
+  <!-- Section de création de post -->
+  <div class="create-post-section" *ngIf="currentUser">
+    <div class="create-post-card">
+      <div class="user-avatar">
+        <img 
+          *ngIf="currentUser.avatarUrl; else defaultAvatar" 
+          [src]="currentUser.avatarUrl" 
+          [alt]="currentUser.firstName + ' ' + currentUser.lastName"
+        >
+        <ng-template #defaultAvatar>
+          <div class="default-avatar">
+            {{ currentUser.firstName.charAt(0) }}{{ currentUser.lastName.charAt(0) }}
+          </div>
+        </ng-template>
+      </div>
+      
+      <div class="create-post-form">
+        <textarea 
+          [(ngModel)]="newPostContent" 
+          [placeholder]="'Quoi de neuf, ' + currentUser.firstName + ' ?'"
+          rows="3"
+          maxlength="500"
+          class="post-textarea"
+        ></textarea>
+        
+        <div class="create-post-actions">
+          <div class="character-count">
+            {{ newPostContent.length }}/500
+          </div>
+          <button 
+            (click)="createPost()" 
+            [disabled]="!newPostContent.trim() || isCreatingPost"
+            class="btn btn-primary"
+          >
+            <span *ngIf="isCreatingPost" class="spinner">⏳</span>
+            <span *ngIf="!isCreatingPost">📝</span>
+            {{ isCreatingPost ? 'Publication...' : 'Publier' }}
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Message d'erreur -->
+  <div *ngIf="errorMessage" class="error-message">
+    {{ errorMessage }}
+  </div>
+
+  <!-- Indicateur de chargement -->
+  <div *ngIf="isLoading" class="loading-container">
+    <div class="spinner-large">⏳</div>
+    <p>Chargement des publications...</p>
+  </div>
+
+  <!-- Feed des publications -->
+  <div class="posts-feed" *ngIf="!isLoading">
+    <div *ngIf="posts.length === 0" class="no-posts">
+      <div class="no-posts-icon">📝</div>
+      <h3>Aucune publication pour le moment</h3>
+      <p>Soyez le premier à partager quelque chose !</p>
+    </div>
+
+    <!-- Liste des posts -->
+    <article *ngFor="let post of posts; trackBy: trackByPostId" class="post-card">
+      <!-- En-tête du post -->
+      <header class="post-header">
+        <div class="post-user-info">
+          <div class="user-avatar">
+            <img 
+              *ngIf="post.user.avatarUrl; else postDefaultAvatar" 
+              [src]="post.user.avatarUrl" 
+              [alt]="post.user.firstName + ' ' + post.user.lastName"
+            >
+            <ng-template #postDefaultAvatar>
+              <div class="default-avatar">
+                {{ post.user.firstName.charAt(0) }}{{ post.user.lastName.charAt(0) }}
+              </div>
+            </ng-template>
+          </div>
+          
+          <div class="user-details">
+            <h4 class="user-name">{{ post.user.firstName }} {{ post.user.lastName }}</h4>
+            <span class="username">{{ '@' + post.user.username }}</span>
+            <time class="post-time">{{ formatDate(post.createdAt) }}</time>
+          </div>
+        </div>
+      </header>
+
+      <!-- Contenu du post -->
+      <div class="post-content">
+        <p>{{ post.content }}</p>
+        <img *ngIf="post.imageUrl" [src]="post.imageUrl" alt="Image du post" class="post-image">
+      </div>
+
+      <!-- Actions du post -->
+      <footer class="post-actions">
+        <button 
+          (click)="toggleLike(post)" 
+          class="action-btn like-btn"
+          [class.liked]="post.isLikedByCurrentUser"
+        >
+          <span class="icon">{{ post.isLikedByCurrentUser ? '❤️' : '🤍' }}</span>
+          <span class="count">{{ post.likesCount }}</span>
+        </button>
+        
+        <button 
+          (click)="toggleComments(post.id)" 
+          class="action-btn comment-btn"
+          [class.active]="showComments[post.id]"
+        >
+          <span class="icon">💬</span>
+          <span class="count">{{ post.commentsCount }}</span>
+        </button>
+      </footer>
+
+      <!-- Section des commentaires -->
+      <div *ngIf="showComments[post.id]" class="comments-section">
+        <!-- Formulaire d'ajout de commentaire -->
+        <div class="add-comment" *ngIf="currentUser">
+          <div class="user-avatar small">
+            <img 
+              *ngIf="currentUser.avatarUrl; else commentDefaultAvatar" 
+              [src]="currentUser.avatarUrl" 
+              [alt]="currentUser.firstName + ' ' + currentUser.lastName"
+            >
+            <ng-template #commentDefaultAvatar>
+              <div class="default-avatar">
+                {{ currentUser.firstName.charAt(0) }}{{ currentUser.lastName.charAt(0) }}
+              </div>
+            </ng-template>
+          </div>
+          
+          <div class="comment-form">
+            <textarea 
+              [(ngModel)]="newCommentContent[post.id]" 
+              placeholder="Écrivez un commentaire..."
+              rows="2"
+              maxlength="300"
+              class="comment-textarea"
+            ></textarea>
+            
+            <button 
+              (click)="addComment(post.id)" 
+              [disabled]="!newCommentContent[post.id]?.trim() || isAddingComment[post.id]"
+              class="btn btn-sm btn-primary"
+            >
+              <span *ngIf="isAddingComment[post.id]" class="spinner">⏳</span>
+              {{ isAddingComment[post.id] ? 'Envoi...' : 'Commenter' }}
+            </button>
+          </div>
+        </div>
+
+        <!-- Indicateur de chargement des commentaires -->
+        <div *ngIf="isLoadingComments[post.id]" class="loading-comments">
+          <div class="spinner">⏳</div>
+          <span>Chargement des commentaires...</span>
+        </div>
+
+        <!-- Liste des commentaires -->
+        <div class="comments-list" *ngIf="postComments[post.id] && !isLoadingComments[post.id]">
+          <div *ngFor="let comment of postComments[post.id]; trackBy: trackByCommentId" class="comment">
+            <div class="comment-avatar">
+              <img 
+                *ngIf="comment.user.avatarUrl; else commentUserDefaultAvatar" 
+                [src]="comment.user.avatarUrl" 
+                [alt]="comment.user.firstName + ' ' + comment.user.lastName"
+              >
+              <ng-template #commentUserDefaultAvatar>
+                <div class="default-avatar small">
+                  {{ comment.user.firstName.charAt(0) }}{{ comment.user.lastName.charAt(0) }}
+                </div>
+              </ng-template>
+            </div>
+            
+            <div class="comment-content">
+              <div class="comment-header">
+                <span class="comment-author">{{ comment.user.firstName }} {{ comment.user.lastName }}</span>
+                <time class="comment-time">{{ formatDate(comment.createdAt) }}</time>
+              </div>
+              
+              <p class="comment-text">{{ comment.content }}</p>
+              
+              <div class="comment-actions">
+                <button 
+                  (click)="toggleCommentLike(comment)" 
+                  class="action-btn like-btn small"
+                  [class.liked]="comment.isLikedByCurrentUser"
+                >
+                  <span class="icon">{{ comment.isLikedByCurrentUser ? '❤️' : '🤍' }}</span>
+                  <span class="count" *ngIf="comment.likesCount > 0">{{ comment.likesCount }}</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Message si aucun commentaire -->
+        <div *ngIf="postComments[post.id]?.length === 0 && !isLoadingComments[post.id]" class="no-comments">
+          <p>Aucun commentaire pour le moment. Soyez le premier à commenter !</p>
+        </div>
+      </div>
+    </article>
+  </div>
+</div>

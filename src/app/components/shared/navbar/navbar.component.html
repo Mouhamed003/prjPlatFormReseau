@@ -1,1 +1,55 @@
-<p>navbar works!</p>
+<nav class="navbar">
+  <div class="navbar-container">
+    <!-- Logo et titre -->
+    <div class="navbar-brand" (click)="navigateToHome()">
+      <h1>Réseau Social</h1>
+    </div>
+
+    <!-- Menu de navigation (desktop) -->
+    <div class="navbar-menu">
+      <a routerLink="/home" routerLinkActive="active" class="navbar-item">
+        <span class="icon">🏠</span>
+        Accueil
+      </a>
+    </div>
+
+    <!-- Profil utilisateur et menu -->
+    <div class="navbar-end">
+      <div class="user-menu" *ngIf="currentUser">
+        <!-- Avatar et nom -->
+        <div class="user-info" (click)="toggleMenu()">
+          <div class="user-avatar">
+            <img 
+              *ngIf="currentUser.avatarUrl; else defaultAvatar" 
+              [src]="currentUser.avatarUrl" 
+              [alt]="currentUser.firstName + ' ' + currentUser.lastName"
+            >
+            <ng-template #defaultAvatar>
+              <div class="default-avatar">
+                {{ currentUser.firstName.charAt(0) }}{{ currentUser.lastName.charAt(0) }}
+              </div>
+            </ng-template>
+          </div>
+          <span class="user-name">{{ currentUser.firstName }} {{ currentUser.lastName }}</span>
+          <span class="dropdown-arrow" [class.open]="isMenuOpen">▼</span>
+        </div>
+
+        <!-- Menu déroulant -->
+        <div class="dropdown-menu" [class.show]="isMenuOpen">
+          <a class="dropdown-item" (click)="navigateToProfile()">
+            <span class="icon">👤</span>
+            Mon Profil
+          </a>
+          <div class="dropdown-divider"></div>
+          <a class="dropdown-item logout" (click)="logout()">
+            <span class="icon">🚪</span>
+            Déconnexion
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Overlay pour fermer le menu sur mobile -->
+  <div class="menu-overlay" [class.show]="isMenuOpen" (click)="closeMenu()"></div>
+</nav>

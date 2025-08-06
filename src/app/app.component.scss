@@ -1,0 +1,15 @@
+.app-main {
+  min-height: 100vh;
+  
+  &.with-navbar {
+    padding-top: 70px; // Hauteur de la navbar
+  }
+}
+
+// Styles globaux pour l'application
+:host {
+  display: block;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  color: #333;
+  background-color: #f8fafc;
+}

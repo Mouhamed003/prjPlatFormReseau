@@ -1,6 +1,7 @@
-import { Injectable } from '@angular/core';
+import { Injectable, Inject, PLATFORM_ID } from '@angular/core';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
-import { BehaviorSubject, Observable, tap } from 'rxjs';
+import { BehaviorSubject, Observable, map, tap } from 'rxjs';
+import { isPlatformBrowser } from '@angular/common';
 import { User, UserLogin, UserRegistration, AuthResponse, UserProfile } from '../models/user.model';
 import { environment } from '../../environments/environment';
 
@@ -15,9 +16,14 @@ export class AuthService {
   public currentUser$ = this.currentUserSubject.asObservable();
   public token$ = this.tokenSubject.asObservable();
 
-  constructor(private http: HttpClient) {
-    // Charger le token et l'utilisateur depuis le localStorage au démarrage
-    this.loadFromStorage();
+  constructor(
+    private http: HttpClient,
+    @Inject(PLATFORM_ID) private platformId: Object
+  ) {
+    // Charger le token et l'utilisateur depuis le localStorage au démarrage (seulement côté navigateur)
+    if (isPlatformBrowser(this.platformId)) {
+      this.loadFromStorage();
+    }
   }
 
   // Inscription
@@ -38,8 +44,10 @@ export class AuthService {
 
   // Déconnexion
   logout(): void {
-    localStorage.removeItem('token');
-    localStorage.removeItem('currentUser');
+    if (isPlatformBrowser(this.platformId)) {
+      localStorage.removeItem('token');
+      localStorage.removeItem('currentUser');
+    }
     this.currentUserSubject.next(null);
     this.tokenSubject.next(null);
   }
@@ -98,14 +106,20 @@ export class AuthService {
 
   // Gérer la réponse d'authentification
   private handleAuthResponse(response: AuthResponse): void {
-    localStorage.setItem('token', response.token);
-    localStorage.setItem('currentUser', JSON.stringify(response.user));
+    if (isPlatformBrowser(this.platformId)) {
+      localStorage.setItem('token', response.token);
+      localStorage.setItem('currentUser', JSON.stringify(response.user));
+    }
     this.tokenSubject.next(response.token);
     this.currentUserSubject.next(response.user);
   }
 
   // Charger les données depuis le localStorage
   private loadFromStorage(): void {
+    if (!isPlatformBrowser(this.platformId)) {
+      return;
+    }
+
     const token = localStorage.getItem('token');
     const userStr = localStorage.getItem('currentUser');
 
