@@ -20,7 +20,8 @@ app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
 
 // Connexion SQLite simple et directe
-const dbPath = path.join(__dirname, 'data', 'database.sqlite');
+const dbPath = path.join(__dirname, 'database', 'social_network.db');
+console.log('📁 Chemin base de données:', dbPath);
 const db = new sqlite3.Database(dbPath, (err) => {
   if (err) {
     console.error('❌ Erreur connexion SQLite:', err);
