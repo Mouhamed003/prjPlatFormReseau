@@ -27,6 +27,12 @@ export class HomeComponent implements OnInit {
   newPostContent = '';
   isCreatingPost = false;
   
+  // Édition de post
+  isEditingPost: { [postId: number]: boolean } = {};
+  editPostContent: { [postId: number]: string } = {};
+  isUpdatingPost: { [postId: number]: boolean } = {};
+  isDeletingPost: { [postId: number]: boolean } = {};
+  
   // Commentaires
   showComments: { [postId: number]: boolean } = {};
   postComments: { [postId: number]: Comment[] } = {};
@@ -172,6 +178,79 @@ export class HomeComponent implements OnInit {
       },
       error: (error) => {
         console.error('Erreur lors du toggle like commentaire:', error);
+      }
+    });
+  }
+
+  // Démarrer l'édition d'une publication
+  startEditPost(post: Post): void {
+    this.isEditingPost[post.id] = true;
+    this.editPostContent[post.id] = post.content;
+  }
+
+  // Annuler l'édition d'une publication
+  cancelEditPost(postId: number): void {
+    this.isEditingPost[postId] = false;
+    delete this.editPostContent[postId];
+  }
+
+  // Sauvegarder l'édition d'une publication
+  saveEditPost(postId: number): void {
+    if (!this.editPostContent[postId]?.trim()) return;
+    
+    this.isUpdatingPost[postId] = true;
+    const updateData = {
+      content: this.editPostContent[postId].trim()
+    };
+    
+    this.postsService.updatePost(postId, updateData).subscribe({
+      next: (response) => {
+        // Mettre à jour la publication dans la liste
+        const postIndex = this.posts.findIndex(p => p.id === postId);
+        if (postIndex !== -1) {
+          this.posts[postIndex] = { ...this.posts[postIndex], ...response.post };
+        }
+        
+        // Sortir du mode édition
+        this.isEditingPost[postId] = false;
+        delete this.editPostContent[postId];
+        this.isUpdatingPost[postId] = false;
+        
+        console.log('✅ Publication mise à jour avec succès');
+      },
+      error: (error) => {
+        console.error('❌ Erreur lors de la mise à jour:', error);
+        this.isUpdatingPost[postId] = false;
+      }
+    });
+  }
+
+  // Supprimer une publication
+  deletePost(postId: number): void {
+    if (!confirm('Êtes-vous sûr de vouloir supprimer cette publication ?')) {
+      return;
+    }
+    
+    this.isDeletingPost[postId] = true;
+    
+    this.postsService.deletePost(postId).subscribe({
+      next: () => {
+        // Retirer la publication de la liste
+        this.posts = this.posts.filter(p => p.id !== postId);
+        
+        // Nettoyer les états
+        delete this.isDeletingPost[postId];
+        delete this.isEditingPost[postId];
+        delete this.editPostContent[postId];
+        delete this.showComments[postId];
+        delete this.postComments[postId];
+        delete this.newCommentContent[postId];
+        
+        console.log('✅ Publication supprimée avec succès');
+      },
+      error: (error) => {
+        console.error('❌ Erreur lors de la suppression:', error);
+        this.isDeletingPost[postId] = false;
       }
     });
   }

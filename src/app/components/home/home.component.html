@@ -85,12 +85,76 @@
             <time class="post-time">{{ formatDate(post.createdAt) }}</time>
           </div>
         </div>
+        
+        <!-- Boutons d'action pour les publications de l'utilisateur -->
+        <div class="post-actions" *ngIf="currentUser && currentUser.id === post.user.id">
+          <button 
+            (click)="startEditPost(post)" 
+            class="btn btn-sm btn-outline"
+            title="Modifier la publication"
+          >
+            ✏️
+          </button>
+          <button 
+            (click)="deletePost(post.id)" 
+            class="btn btn-sm btn-danger"
+            title="Supprimer la publication"
+            [disabled]="isDeletingPost[post.id]"
+          >
+            <span *ngIf="isDeletingPost[post.id]">⏳</span>
+            <span *ngIf="!isDeletingPost[post.id]">🗑️</span>
+          </button>
+        </div>
       </header>
 
       <!-- Contenu du post -->
       <div class="post-content">
-        <p>{{ post.content }}</p>
-        <img *ngIf="post.imageUrl" [src]="post.imageUrl" alt="Image du post" class="post-image">
+        <!-- Mode lecture -->
+        <div *ngIf="!isEditingPost[post.id]">
+          <p>{{ post.content }}</p>
+          
+          <!-- Image si présente -->
+          <img 
+            *ngIf="post.imageUrl" 
+            [src]="post.imageUrl" 
+            [alt]="'Image de la publication'"
+            class="post-image"
+          >
+        </div>
+        
+        <!-- Mode édition -->
+        <div *ngIf="isEditingPost[post.id]" class="edit-post-form">
+          <textarea 
+            [(ngModel)]="editPostContent[post.id]" 
+            rows="3"
+            maxlength="500"
+            class="post-textarea"
+            placeholder="Modifier votre publication..."
+          ></textarea>
+          
+          <div class="edit-post-actions">
+            <div class="character-count">
+              {{ editPostContent[post.id]?.length || 0 }}/500
+            </div>
+            <div class="edit-buttons">
+              <button 
+                (click)="cancelEditPost(post.id)" 
+                class="btn btn-sm btn-outline"
+              >
+                Annuler
+              </button>
+              <button 
+                (click)="saveEditPost(post.id)" 
+                [disabled]="!editPostContent[post.id]?.trim() || isUpdatingPost[post.id]"
+                class="btn btn-sm btn-primary"
+              >
+                <span *ngIf="isUpdatingPost[post.id]">⏳</span>
+                <span *ngIf="!isUpdatingPost[post.id]">💾</span>
+                {{ isUpdatingPost[post.id] ? 'Sauvegarde...' : 'Sauvegarder' }}
+              </button>
+            </div>
+          </div>
+        </div>
       </div>
 
       <!-- Actions du post -->

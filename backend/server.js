@@ -2,6 +2,7 @@ const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
+const database = require('./config/database');
 require('dotenv').config();
 
 const app = express();
@@ -63,11 +64,29 @@ app.use((err, req, res, next) => {
   });
 });
 
-// Démarrage du serveur
-app.listen(PORT, () => {
-  console.log(`🚀 Serveur démarré sur le port ${PORT}`);
-  console.log(`🌐 Environnement: ${process.env.NODE_ENV}`);
-  console.log(`📊 API disponible sur: http://localhost:${PORT}/api`);
-});
+// Fonction de démarrage avec initialisation de la base de données
+async function startServer() {
+  try {
+    // Initialiser la connexion à la base de données
+    console.log('🔧 Initialisation de la connexion à la base de données...');
+    await database.connect();
+    console.log('✅ Connexion à la base de données établie');
+    
+    // Démarrage du serveur
+    app.listen(PORT, () => {
+      console.log(`🚀 Serveur démarré sur le port ${PORT}`);
+      console.log(`📱 Frontend URL: ${process.env.FRONTEND_URL || 'http://localhost:4200'}`);
+      console.log(`🌐 API disponible sur: http://localhost:${PORT}/api`);
+      console.log(`🔗 Health check: http://localhost:${PORT}/api/health`);
+      console.log(`📝 Inscription: POST http://localhost:${PORT}/api/auth/register`);
+    });
+  } catch (error) {
+    console.error('❌ Erreur lors du démarrage du serveur:', error);
+    process.exit(1);
+  }
+}
+
+// Démarrer le serveur
+startServer();
 
 module.exports = app;

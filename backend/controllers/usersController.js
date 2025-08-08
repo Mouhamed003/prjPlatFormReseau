@@ -4,67 +4,108 @@ const { validationResult } = require('express-validator');
 const database = require('../config/database');
 
 class UsersController {
-  // Inscription d'un nouvel utilisateur
+  // Inscription - Version académique corrigée
   static async register(req, res) {
     try {
-      console.log('Début de l\'inscription, données reçues:', req.body);
+      console.log(' [ACADÉMIQUE] Début inscription - données reçues:', req.body);
       
-      // Vérification des erreurs de validation
+      // Vérifier les erreurs de validation
       const errors = validationResult(req);
       if (!errors.isEmpty()) {
-        console.log('Erreurs de validation:', errors.array());
+        console.log(' [ACADÉMIQUE] Erreurs de validation:', errors.array());
         return res.status(400).json({
           error: 'Données invalides',
+          message: 'Les données fournies ne sont pas valides',
           details: errors.array()
         });
       }
 
       const { username, email, password, firstName, lastName, bio } = req.body;
-      console.log('Variables extraites:', { username, email, firstName, lastName, bio });
+      console.log(' [ACADÉMIQUE] Données extraites:', { username, email, firstName, lastName });
+
+      // Validation académique supplémentaire côté serveur
+      if (!username || !email || !password || !firstName || !lastName) {
+        console.log(' [ACADÉMIQUE] Données manquantes détectées');
+        return res.status(400).json({
+          error: 'Données invalides',
+          message: 'Tous les champs obligatoires doivent être remplis'
+        });
+      }
+
+      // Validation email académique
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(email)) {
+        console.log(' [ACADÉMIQUE] Format email invalide');
+        return res.status(400).json({
+          error: 'Données invalides',
+          message: 'Format d\'email invalide'
+        });
+      }
+
+      // Validation mot de passe académique
+      if (password.length < 6) {
+        console.log(' [ACADÉMIQUE] Mot de passe trop court');
+        return res.status(400).json({
+          error: 'Données invalides',
+          message: 'Le mot de passe doit contenir au moins 6 caractères'
+        });
+      }
 
       // Vérifier si l'utilisateur existe déjà
-      console.log('Vérification de l\'utilisateur existant...');
+      console.log(' [ACADÉMIQUE] Vérification utilisateur existant...');
       const existingUser = await database.get(
         'SELECT id FROM users WHERE email = ? OR username = ?',
         [email, username]
       );
-      console.log('Utilisateur existant:', existingUser);
+      console.log('[ACADÉMIQUE] Utilisateur existant trouvé:', existingUser);
 
       if (existingUser) {
-        console.log('Utilisateur déjà existant, retour d\'erreur');
+        console.log(' [ACADÉMIQUE] Utilisateur déjà existant');
         return res.status(409).json({
           error: 'Utilisateur déjà existant',
           message: 'Un compte avec cet email ou nom d\'utilisateur existe déjà'
         });
       }
 
-      // Hachage du mot de passe
-      console.log('Hachage du mot de passe...');
-      const saltRounds = 12;
-      const passwordHash = await bcrypt.hash(password, saltRounds);
-      console.log('Mot de passe haché avec succès');
+      // Hacher le mot de passe avec sécurité académique
+      console.log(' [ACADÉMIQUE] Hachage du mot de passe...');
+      const passwordHash = await bcrypt.hash(password, 12);
+      console.log('[ACADÉMIQUE] Mot de passe haché avec succès');
 
-      // Insertion du nouvel utilisateur
-      console.log('Insertion de l\'utilisateur dans la base...');
+      // Insérer l'utilisateur avec gestion d'erreur académique
+      console.log(' [ACADÉMIQUE] Insertion utilisateur en base...');
       const result = await database.run(
-        `INSERT INTO users (username, email, password_hash, first_name, last_name, bio) 
-         VALUES (?, ?, ?, ?, ?, ?)`,
+        `INSERT INTO users (username, email, password_hash, first_name, last_name, bio, created_at, updated_at) 
+         VALUES (?, ?, ?, ?, ?, ?, datetime('now'), datetime('now'))`,
         [username, email, passwordHash, firstName, lastName, bio || null]
       );
-      console.log('Résultat de l\'insertion:', result);
+      console.log('[ACADÉMIQUE] Résultat insertion:', result);
 
-      // Génération du token JWT
-      console.log('Génération du token JWT...');
-      console.log('JWT_SECRET:', process.env.JWT_SECRET ? 'défini' : 'non défini');
-      console.log('JWT_EXPIRES_IN:', process.env.JWT_EXPIRES_IN);
+      // Vérification académique de l'insertion
+      if (!result || !result.id) {
+        console.error(' [ACADÉMIQUE] Échec insertion - pas d\'ID retourné');
+        throw new Error('Échec de l\'insertion en base de données');
+      }
+
+      // Générer le token JWT avec vérification académique
+      console.log(' [ACADÉMIQUE] Génération token JWT...');
+      console.log('[ACADÉMIQUE] JWT_SECRET:', process.env.JWT_SECRET ? 'défini' : 'non défini');
+      console.log('[ACADÉMIQUE] JWT_EXPIRES_IN:', process.env.JWT_EXPIRES_IN);
+      
+      if (!process.env.JWT_SECRET) {
+        console.error(' [ACADÉMIQUE] JWT_SECRET non défini');
+        throw new Error('Configuration JWT manquante');
+      }
+
       const token = jwt.sign(
         { userId: result.id, username, email },
         process.env.JWT_SECRET,
-        { expiresIn: process.env.JWT_EXPIRES_IN }
+        { expiresIn: process.env.JWT_EXPIRES_IN || '24h' }
       );
-      console.log('Token généré avec succès');
+      console.log('[ACADÉMIQUE] Token généré avec succès');
 
-      res.status(201).json({
+      // Réponse académique structurée
+      const response = {
         message: 'Utilisateur créé avec succès',
         user: {
           id: result.id,
@@ -72,17 +113,32 @@ class UsersController {
           email,
           firstName,
           lastName,
-          bio
+          bio: bio || null,
+          avatarUrl: null
         },
         token
-      });
+      };
 
+      console.log(' [ACADÉMIQUE] Inscription terminée avec succès pour:', email, 'ID:', result.id);
+      res.status(201).json(response);
+      
     } catch (error) {
-      console.error('Erreur lors de l\'inscription:', error);
-      res.status(500).json({
+      console.error(' [ACADÉMIQUE] Erreur lors de l\'inscription:', error.message);
+      console.error('[ACADÉMIQUE] Stack trace:', error.stack);
+      
+      // Gestion d'erreur académique détaillée
+      const errorResponse = {
         error: 'Erreur interne',
-        message: 'Une erreur est survenue lors de la création du compte'
-      });
+        message: 'Une erreur est survenue lors de la création du compte',
+        timestamp: new Date().toISOString()
+      };
+      
+      // En mode développement, ajouter plus de détails
+      if (process.env.NODE_ENV !== 'production') {
+        errorResponse.details = error.message;
+      }
+      
+      res.status(500).json(errorResponse);
     }
   }
 

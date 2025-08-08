@@ -9,7 +9,7 @@ import { environment } from '../../environments/environment';
   providedIn: 'root'
 })
 export class AuthService {
-  private apiUrl = `${environment.apiUrl}/users`;
+  private apiUrl = `${environment.apiUrl}/auth`;
   private currentUserSubject = new BehaviorSubject<User | null>(null);
   private tokenSubject = new BehaviorSubject<string | null>(null);
 
@@ -28,17 +28,25 @@ export class AuthService {
 
   // Inscription
   register(userData: UserRegistration): Observable<AuthResponse> {
+    console.log('🚀 Tentative d\'inscription avec:', userData);
     return this.http.post<AuthResponse>(`${this.apiUrl}/register`, userData)
       .pipe(
-        tap(response => this.handleAuthResponse(response))
+        tap(response => {
+          console.log('✅ Réponse d\'inscription reçue:', response);
+          this.handleAuthResponse(response);
+        })
       );
   }
 
   // Connexion
   login(credentials: UserLogin): Observable<AuthResponse> {
+    console.log('🔑 Tentative de connexion avec:', { email: credentials.email });
     return this.http.post<AuthResponse>(`${this.apiUrl}/login`, credentials)
       .pipe(
-        tap(response => this.handleAuthResponse(response))
+        tap(response => {
+          console.log('✅ Réponse de connexion reçue:', response);
+          this.handleAuthResponse(response);
+        })
       );
   }
 
