@@ -79,7 +79,7 @@ const updateProfileValidation = [
     .withMessage('URL d\'avatar invalide')
 ];
 
-// Routes publiques (sans authentification)
+// Routes d'authentification (publiques)
 router.post('/register', registerValidation, UsersController.register);
 router.post('/login', loginValidation, UsersController.login);
 
